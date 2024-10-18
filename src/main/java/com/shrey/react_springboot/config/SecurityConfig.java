@@ -7,10 +7,8 @@ import jakarta.servlet.http.HttpSessionListener;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -64,7 +62,6 @@ public class SecurityConfig implements WebMvcConfigurer {
         return new HttpSessionListener() {
             @Override
             public void sessionCreated(HttpSessionEvent se) {
-                System.out.println(se.getSession().getId());
                 se.getSession().setMaxInactiveInterval(60); // Set session timeout to 60 seconds (1 minute)
             }
         };
@@ -81,10 +78,5 @@ public class SecurityConfig implements WebMvcConfigurer {
         authProvider.setUserDetailsService(customUserDetailsService); // Use custom UserDetailsService
         // No password encoder configured
         return authProvider;
-    }
-
-    @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
     }
 }
