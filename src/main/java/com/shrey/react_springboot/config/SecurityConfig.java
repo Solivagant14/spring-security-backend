@@ -1,20 +1,19 @@
 package com.shrey.react_springboot.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.shrey.react_springboot.service.CustomUserDetailsService;
+
+import jakarta.servlet.http.HttpSessionEvent;
+import jakarta.servlet.http.HttpSessionListener;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -22,6 +21,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig implements WebMvcConfigurer {
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // Allow all paths
@@ -32,40 +32,51 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .exposedHeaders("Authorization"); // Expose headers if needed
     }
 
-    @Autowired
-    private UserDetailsService userDetailsService;
 
-    // @Bean
-    // public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    private final CustomUserDetailsService customUserDetailsService;
 
-    //     return http.csrf(customizer -> customizer.disable()).
-    //             authorizeHttpRequests(request -> request.anyRequest().authenticated()).
-    //             // formLogin(Customizer.withDefaults()).
-    //             httpBasic(Customizer.withDefaults()).
-    //             sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)).build();
-    // }
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService) {
+        this.customUserDetailsService = customUserDetailsService;
+    }
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .cors()
-                .and()
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable) // Disable CSRF for simplicity
                 .authorizeHttpRequests(authz -> authz
-                    .requestMatchers("/login", "/register").permitAll() // Allow login and register without authentication
-                    .anyRequest().authenticated() // Other requests require authentication
+                                .requestMatchers("/login", "/register").permitAll() // Allow login and register without authentication
+                                .anyRequest().authenticated() // Other requests require authentication
                 )
-                .formLogin(Customizer.withDefaults()
-                ).
-                httpBasic(Customizer.withDefaults()).
-                sessionManagement(session -> session
-                    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Sessions are created when necessary
+                // .formLogin(Customizer.withDefaults())
+                .formLogin(formLogin -> formLogin.defaultSuccessUrl("/students", true))
+                .httpBasic(Customizer.withDefaults())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Sessions are created when necessary
                 )
                 .build();
     }
-    // @Bean
-    // public UserDetailsService userDetailsService(){
-    //     new User1, new User2;
-    //     return new InMemoryUserDetailsManager(user1, User2);
-    // }
 
+    @Bean
+    public HttpSessionListener httpSessionListener() {
+        return new HttpSessionListener() {
+            @Override
+            public void sessionCreated(HttpSessionEvent se) {
+                se.getSession().setMaxInactiveInterval(60); // Set session timeout to 60 seconds (1 minute)
+            }
+        };
+    }
+
+    @Bean
+    UserDetailsService userDetailsService() {
+        return customUserDetailsService; // Use the custom UserDetailsService
+    }
+
+    @Bean
+    DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(customUserDetailsService); // Use custom UserDetailsService
+        // No password encoder configured
+        return authProvider;
+    }
 }

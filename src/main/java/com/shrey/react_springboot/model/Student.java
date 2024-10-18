@@ -1,4 +1,4 @@
-package com.shrey.react_springboot.entity;
+package com.shrey.react_springboot.model;
 
 public class Student {
     private int id;
