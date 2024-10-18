@@ -50,7 +50,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                                 .requestMatchers("/login", "/register").permitAll() // Allow login and register without authentication
                                 .anyRequest().authenticated() // Other requests require authentication
                 )
-                .formLogin(Customizer.withDefaults())
+                // .formLogin(Customizer.withDefaults())
+                .formLogin(formLogin -> formLogin.defaultSuccessUrl("/students", true))
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Sessions are created when necessary
